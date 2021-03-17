@@ -21,6 +21,7 @@ import (
 )
 
 const (
+	SectionEnrollmentPath = `classenrollment_v2`
 	ClassesPath = `class_v2`
 	AttendanceCodesPath = "VendorLink/SisService/AttendanceCode"
 	TeachersPath = "teacher"

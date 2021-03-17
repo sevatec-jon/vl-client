@@ -116,7 +116,7 @@ to quickly create a Cobra application.`,
 			log.Fatal(err)
 		}
 
-		for i, row := range results[1:] {
+		for i, row := range results[0:] {
 
 			fmt.Printf("row[%d]: %v \n", i, row)
 			//_, err := stmt.Exec(row.TeacherID, row.LastName)

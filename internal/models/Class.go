@@ -7,10 +7,9 @@ type Class struct {
 	ClassID int `json`
 	SchoolID int `json`
 	CourseID int `json`
-	TeacherID int `json`
 	Active int `json`
 	SectionDesc string `json:SectionDescr`
 	Teachers []ClassTeacher `json`
-
-	ReportingPeriodMeetingTimes []ReportingPeriodMeetingTime `json:`
+	Students []Student `json`
+	ReportingPeriodMeetingTimes []ReportingPeriodMeetingTime `json`
 }
