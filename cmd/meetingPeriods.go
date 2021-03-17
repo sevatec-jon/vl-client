@@ -21,25 +21,18 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/sevatec-jon/vl-client/internal/config"
+	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/sevatec-jon/vl-client/internal/models"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"log"
 	"net/http"
-	_ "github.com/denisenkom/go-mssqldb"
 	"strconv"
 )
 
-var (
-	Config config.Configuration
-	db *sql.DB
-	startRec int
-)
-
-var sectionEnrollmentCmd = &cobra.Command{
-	Use:   "sectionEnrollment",
+var meetingPeriodsCmd = &cobra.Command{
+	Use:   "meetingPeriods",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -62,11 +55,11 @@ to quickly create a Cobra application.`,
 		//defer db.Close()
 		startRec,_ := cmd.Flags().GetInt("startRec")
 
-		getClasses(db, startRec, processStudentEnrollments)
+		getClasses(db, startRec, processMeetingPeriods)
 	},
 }
 
-func processStudentEnrollments(classId int) {
+func processMeetingPeriods(classId int) {
 
 	db, err := sql.Open("sqlserver", Config.DBConn)
 
@@ -137,82 +130,45 @@ func processStudentEnrollments(classId int) {
 	//fmt.Printf("results: %v", results)
 	row := results[0]
 
-	stmt, err := db.Prepare(`INSERT INTO SectionEnrollment(ClassID,	SchoolID,	StudentID,	ExternalRefId, EnrollmentStatusCd)
-										VALUES(@a, @b, @c, @d, @e); select convert(bigint, SCOPE_IDENTITY());`)
+	stmt, err := db.Prepare(`INSERT INTO MeetingPeriod(ClassID,	SchoolID,	Day, Period)
+										VALUES(@a, @b, @c, @d); select convert(bigint, SCOPE_IDENTITY());`)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//fmt.Printf("students array: %v \n", row.Students)
-	for _, stu := range row.Students[0:] {
-		fmt.Printf("student: %v \n", stu)
+	for _, m := range row.ReportingPeriodMeetingTimes[0:] {
+		fmt.Printf("period meet time: %v \n", m)
 
-		if stu.EnrollmentStatusCd == "A" {
-			row := stmt.QueryRowContext(
-				context.Background(),
-				sql.Named("a", row.ClassID),
-				sql.Named("b", Config.SchoolId),
-				sql.Named("c", stu.StudentID),
-				sql.Named("d", stu.ExternalRefId),
-				sql.Named("e", stu.EnrollmentStatusCd))
+		for _, p := range m.ReportingPeriods[0:] {
 
-			var rowID int64
-			err = row.Scan(&rowID)
+			for _, t := range p.MeetingTimes[0:] {
+				row := stmt.QueryRowContext(
+					context.Background(),
+					sql.Named("a", row.ClassID),
+					sql.Named("b", Config.SchoolId),
+					sql.Named("c", t.Day),
+					sql.Named("d", t.Period))
 
-			if err != nil {
-				log.Fatal(err)
+				var rowID int64
+				err = row.Scan(&rowID)
+
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				fmt.Printf("inserted id: %v \n", rowID)
 			}
-
-			fmt.Printf("inserted id: %v \n", rowID)
 		}
+
 	}
 }
 func init() {
 
-	sectionEnrollmentCmd.Flags().StringP("class", "c", "", "class id to get sections enrollments for")
+	meetingPeriodsCmd.Flags().StringP("class", "c", "", "class id to get sections enrollments for")
 
-	sectionEnrollmentCmd.Flags().Int("startRec", 0, "starting class id to get sections enrollments")
+	meetingPeriodsCmd.Flags().Int("startRec", 0, "starting class id to get sections enrollments")
 
 
-	getCmd.AddCommand(sectionEnrollmentCmd)
+	getCmd.AddCommand(meetingPeriodsCmd)
 
 }
-
-func getClasses(db *sql.DB, startRec int, processSectionEnrollments func(classId int)) *sql.Rows{
-
-	fmt.Printf("Getting rows for %v \n", Config.SchoolId)
-	var (
-		id int
-		name string
-	)
-	fmt.Printf("staring at %s \n", strconv.Itoa(startRec))
-	rows,err := db.Query("select classId, DistrictCourseID from classes where SchoolID =" + Config.SchoolId + " AND classId >= " + strconv.Itoa(startRec))
-
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		err := rows.Scan(&id, &name)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Printf("Processing Section %s \n", name)
-		processSectionEnrollments(id)
-	}
-	err = rows.Err()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return rows
-}
-/*
- for _, row := range rows[1:] {
-    _, err := stmt.Exec(row[0], row[1])
-    if err != nil {
-      log.Fatal(err)
-    }
-  }
- */

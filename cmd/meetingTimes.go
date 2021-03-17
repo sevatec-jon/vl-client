@@ -31,7 +31,6 @@ import (
 	"strconv"
 )
 
-// classesCmd represents the classes command
 var meetingTimesCmd = &cobra.Command{
 	Use:   "meetingTimes",
 	Short: "A brief description of your command",
@@ -146,7 +145,7 @@ func processMeetingTimes(classId int) {
 				sql.Named("a", row.ClassID),
 				sql.Named("b", Config.SchoolId),
 				sql.Named("c", p.Name),
-				sql.Named("c", p.Room))
+				sql.Named("d", p.Room))
 
 			var rowID int64
 			err = row.Scan(&rowID)
@@ -162,9 +161,9 @@ func processMeetingTimes(classId int) {
 }
 func init() {
 
-	sectionEnrollmentCmd.Flags().StringP("class", "c", "", "class id to get sections enrollments for")
+	meetingTimesCmd.Flags().StringP("class", "c", "", "class id to get sections enrollments for")
 
-	sectionEnrollmentCmd.Flags().Int("startRec", 0, "starting class id to get sections enrollments")
+	meetingTimesCmd.Flags().Int("startRec", 0, "starting class id to get sections enrollments")
 
 
 	getCmd.AddCommand(meetingTimesCmd)
